@@ -77,47 +77,73 @@ def reg_file(reset, clk, ra, rb, wa, wda, reg_wr, rda, rdb):
         if reset.next == INACTIVE_HIGH:
             if reg_wr and (wa > 0):
                 registers[wa].next = wda
-                reg_wr.next = False
 
     return read, write
 
 
 @block
-def alu(reset, alu_op, rda, rdx, result):
+def alu(reset, alu_decode, rda, rdx, result):
 
     @always_comb
     def operation():
         if reset.next == INACTIVE_HIGH:
-            if alu_op == AND:
+            if alu_decode == AND:
                 result.next = rda & rdx
-            elif alu_op == OR:
+            elif alu_decode == OR:
                 result.next = rda | rdx
-            elif alu_op == ADD:
+            elif alu_decode == ADD:
                 result.next = rda + rdx
-            elif alu_op == SUB:
+            elif alu_decode == SUB:
                 result.next = rda - rdx
+            elif alu_decode == XOR:
+                result.next = rda ^ rdx
+            elif alu_decode == SLL:
+                result.next = rda << rdx
+            elif alu_decode == SRL:
+                result.next = rda.signed() >> rdx
+            elif alu_decode == SLT:
+                result.next = True if (rda.signed() < rdx.signed()) else False
+            elif alu_decode == SLTU:
+                result.next = True if (rda.unsigned() < rdx.unsigned()) else False
+            elif alu_decode == SRA:
+                if rda[31] == 0:
+                    result.next = rda.signed() >> rdx
+                elif rda[31] == 1:
+                    temp = (2**rdx) - 1
+                    pad = signal(intbv(temp)[rdx:])
 
     return operation
 
 
 @block
-def alu_control(reset, instruction, alu_op, oprtin):
+def alu_control(reset, instruction, alu_op, alu_decode):
 
     @always_comb
     def alucont():
         if reset.next == INACTIVE_HIGH:
-            if (alu_op[0] == 0) and (alu_op[1] == 0):
-                oprtin.next = int('0010', 2)
-            elif (alu_op[0] == 1):
-                oprtin.next = int('0110', 2)
-            elif (alu_op[1] == 1) and (instruction[31:25] == 0) and (instruction[14:12] == 0):
-                oprtin.next = int('0010', 2)
-            elif (alu_op[1] == 1) and (instruction[31:25] == int('0100000', 2)) and (instruction[14:12] == 0):
-                oprtin.next = int('0110', 2)
-            elif (alu_op[1] == 1) and (instruction[31:25] == 0) and (instruction[14:12] == int('111', 2)):
-                oprtin.next = int('0000', 2)
-            elif (alu_op[1] == 1) and (instruction[31:25] == 0) and (instruction[14:12] == int('110', 2)):
-                oprtin.next = int('0001', 2)
+            if alu_op == 2:
+                if instruction[31:25] == 0:
+                    if instruction[14:12] == 0:
+                        alu_decode.next = ADD
+                    elif instruction[14:12] == 1:
+                        alu_decode.next = SLL
+                    elif instruction[14:12] == 2:
+                        alu_decode.next = SLT
+                    elif instruction[14:12] == 3:
+                        alu_decode.next = SLTU
+                    elif instruction[14:12] == 4:
+                        alu_decode.next = XOR
+                    elif instruction[14:12] == 5:
+                        alu_decode.next = SRL
+                    elif instruction[14:12] == 6:
+                        alu_decode.next = OR
+                    elif instruction[14:12] == 7:
+                        alu_decode.next = AND
+                elif instruction[31:25] == 32:
+                    if instruction[14:12] == 0:
+                        alu_decode.next = SUB
+                    elif instruction[14:12] == 5:
+                        alu_decode.next = SRA
 
     return alucont
 
@@ -259,7 +285,7 @@ def cpu_top(clk, reset):
     result, read_data, pc, shl = [signal(intbv(0)[CPU_BITS:]) for _ in range(4)]
     pc_sel = signal(intbv(0)[1:])
     im_gen = signal(intbv(0)[CPU_BITS:])
-    oprtin = signal(intbv(0)[4:])
+    alu_decode = signal(intbv(0)[4:])
 
     step = signal(intbv(0)[1:])
 
@@ -268,14 +294,14 @@ def cpu_top(clk, reset):
     cont = control(reset, opcode, brnch, mem_rd, mem_to_rgs, alu_op, mem_wr, alu_src, reg_wr)
     dmem = data_mem(reset, clk, result, mem_wr, mem_rd, rdb, read_data)
     imem = inst_mem(reset, read_addr, instruction, ra, rb, wa, opcode)
-    alux = alu(reset, alu_op, rda, rdx, result)
+    alux = alu(reset, alu_decode, rda, rdx, result)
     regf = reg_file(reset, clk, ra, rb, wa, wda, reg_wr, rda, rdb)
     padr = pc_adder(reset, step, pc, pc_addr)
     jadr = jmp_adder(reset, read_addr, shl, jmp_addr)
     pcmx = pc_mux(reset, pc, pc_addr, jmp_addr, pc_sel)
     almx = alu_mux(reset, im_gen, rdb, rdx, alu_src)
     wdmx = wda_mux(reset, wda, mem_to_rgs, result, read_data)
-    aluc = alu_control(reset, instruction, alu_op, oprtin)
+    aluc = alu_control(reset, instruction, alu_op, alu_decode)
     imgn = imm_gen(reset, instruction, im_gen)
     nxpc = pc_assign(reset, read_addr, pc)
 
