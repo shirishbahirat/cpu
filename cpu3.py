@@ -59,6 +59,20 @@ def alu_mux(reset, im_gen, rdb, rdx, alu_src):
 
 
 @block
+def taken(result, brnch, pc_sel):
+
+    @always_comb
+    def take():
+
+        if (not result) and (brnch):
+            pc_sel.next = True
+        else:
+            pc_sel.next = False
+
+    return take
+
+
+@block
 def reg_file(reset, clk, ra, rb, wa, wda, reg_wr, rda, rdb):
 
     registers = [signal(intbv(10 + i)[CPU_BITS:]) for i in range(32)]
@@ -112,7 +126,7 @@ def alu(reset, alu_decode, rda, rdx, result):
                     temp = (2**rdx) - 1
                     pad = signal(intbv(temp)[rdx:])
                     result.next = rda.signed() >> rdx
-                    result.next[31:(31 - rdx)] = pad
+                    result.next[32:(31 - rdx)] = pad
 
     return operation
 
@@ -124,28 +138,33 @@ def alu_control(reset, instruction, alu_op, alu_decode):
     def alucont():
         if reset.next == INACTIVE_HIGH:
             if alu_op == 2:
-                if instruction[31:25] == 0:
-                    if instruction[14:12] == 0:
+                if instruction[32:25] == 0:
+                    if instruction[15:12] == 0:
                         alu_decode.next = ADD
-                    elif instruction[14:12] == 1:
+                    elif instruction[15:12] == 1:
                         alu_decode.next = SLL
-                    elif instruction[14:12] == 2:
+                    elif instruction[15:12] == 2:
                         alu_decode.next = SLT
-                    elif instruction[14:12] == 3:
+                    elif instruction[15:12] == 3:
                         alu_decode.next = SLTU
-                    elif instruction[14:12] == 4:
+                    elif instruction[15:12] == 4:
                         alu_decode.next = XOR
-                    elif instruction[14:12] == 5:
+                    elif instruction[15:12] == 5:
                         alu_decode.next = SRL
-                    elif instruction[14:12] == 6:
+                    elif instruction[15:12] == 6:
                         alu_decode.next = OR
-                    elif instruction[14:12] == 7:
+                    elif instruction[15:12] == 7:
                         alu_decode.next = AND
-                elif instruction[31:25] == 32:
-                    if instruction[14:12] == 0:
+                elif instruction[32:25] == 32:
+                    if instruction[15:12] == 0:
                         alu_decode.next = SUB
-                    elif instruction[14:12] == 5:
+                    elif instruction[15:12] == 5:
                         alu_decode.next = SRA
+            elif alu_op == 0:
+                alu_decode.next = ADD
+            elif alu_op == 7:
+                if instruction[15:12] == 0:
+                    alu_decode.next = XOR
 
     return alucont
 
@@ -156,7 +175,28 @@ def imm_gen(reset, instruction, im_gen):
     @always_comb
     def immgen():
         if reset.next == INACTIVE_HIGH:
-            im_gen.next = instruction
+
+            if instruction[7:0] == ITYPE:
+                im_gen.next[12:] = instruction[32:20]
+
+            elif instruction[7:0] == STYPE:
+                im_gen.next[12:5] = instruction[32:25]
+                im_gen.next[5:] = instruction[12:7]
+
+            elif instruction[7:0] == JTYPE:
+                im_gen.next[12] = instruction[31]
+                im_gen.next[11:5] = instruction[31:25]
+                im_gen.next[11] = instruction[7]
+                im_gen.next[5:1] = instruction[12:8]
+
+            if instruction[31] == 0:
+                pad = signal(intbv(0)[20:])
+                im_gen.next[32:(31 - 20)] = pad
+
+            else:
+                temp = (2**20) - 1
+                pad = signal(intbv(temp)[20:])
+                im_gen.next[32:(31 - 20)] = pad
 
     return immgen
 
@@ -176,7 +216,7 @@ def control(reset, opcode, brnch, mem_rd, mem_to_rgs, alu_op, mem_wr, alu_src, r
                 brnch.next = False
                 alu_op.next = 2
 
-            elif opcode == 2:
+            elif opcode == ITYPE:
                 alu_src.next = True
                 mem_to_rgs.next = True
                 reg_wr.next = True
@@ -185,7 +225,7 @@ def control(reset, opcode, brnch, mem_rd, mem_to_rgs, alu_op, mem_wr, alu_src, r
                 brnch.next = False
                 alu_op.next = 0
 
-            elif opcode == 35:
+            elif opcode == STYPE:
                 alu_src.next = True
                 mem_to_rgs.next = False
                 reg_wr.next = False
@@ -194,14 +234,14 @@ def control(reset, opcode, brnch, mem_rd, mem_to_rgs, alu_op, mem_wr, alu_src, r
                 brnch.next = False
                 alu_op.next = 0
 
-            elif opcode == 99:
+            elif opcode == JTYPE:
                 alu_src.next = False
                 mem_to_rgs.next = False
                 reg_wr.next = False
                 mem_rd.next = False
                 mem_wr.next = False
                 brnch.next = True
-                alu_op.next = 1
+                alu_op.next = 7
 
     return cont
 
@@ -234,11 +274,23 @@ def inst_mem(reset, read_addr, instruction, ra, rb, wa, opcode):
         if reset.next == INACTIVE_HIGH:
             instruction.next = inst_ram[read_addr]
 
-            if inst_ram[read_addr][6:0] == RTYPE:
-                ra.next = inst_ram[read_addr][19:15]
-                rb.next = inst_ram[read_addr][24:20]
-                opcode.next = inst_ram[read_addr][6:0]
-                wa.next = inst_ram[read_addr][11:7]
+            if inst_ram[read_addr][7:0] == RTYPE:
+                ra.next = inst_ram[read_addr][20:15]
+                rb.next = inst_ram[read_addr][25:20]
+                opcode.next = inst_ram[read_addr][7:0]
+                wa.next = inst_ram[read_addr][12:7]
+            elif inst_ram[read_addr][7:0] == ITYPE:
+                ra.next = inst_ram[read_addr][20:15]
+                opcode.next = inst_ram[read_addr][7:0]
+                wa.next = inst_ram[read_addr][12:7]
+            elif inst_ram[read_addr][7:0] == STYPE:
+                ra.next = inst_ram[read_addr][20:15]
+                opcode.next = inst_ram[read_addr][7:0]
+                wa.next = inst_ram[read_addr][25:20]
+            elif inst_ram[read_addr][7:0] == JTYPE:
+                ra.next = inst_ram[read_addr][20:15]
+                rb.next = inst_ram[read_addr][25:20]
+                opcode.next = inst_ram[read_addr][7:0]
 
     return itcm
 
@@ -306,6 +358,7 @@ def cpu_top(clk, reset):
     aluc = alu_control(reset, instruction, alu_op, alu_decode)
     imgn = imm_gen(reset, instruction, im_gen)
     nxpc = pc_assign(reset, read_addr, pc)
+    tken = taken(result, brnch, pc_sel)
 
     @always(step.posedge)
     def cpu():
@@ -314,12 +367,13 @@ def cpu_top(clk, reset):
 
     @instance
     def event():
-
+        idle = 7
         while True:
-            for i in range(3):
+            for i in range(idle):
                 yield clk.posedge
             if reset.next == INACTIVE_HIGH:
                 step.next = not step
+                idle = 3
 
     return instances()
 
@@ -345,7 +399,7 @@ def main():
 
     tb = top()
     tb.config_sim(trace=True)
-    tb.run_sim(1200)
+    tb.run_sim(1400)
 
 
 if __name__ == '__main__':

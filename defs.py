@@ -6,10 +6,11 @@ CPU_ALUW = 4
 ACTIVE_LOW, INACTIVE_HIGH = 0, 1
 
 RTYPE = 51
-ITYPE = 1
-STYPE = 2
-BTYPE = 3
-UTYPE = 4
+ITYPE = 3
+STYPE = 35
+BTYPE = 32
+UTYPE = 42
+JTYPE = 99
 
 
 # R-format rd = rs1 op rs2
