@@ -17,15 +17,22 @@ for i in range(12):
     instruction = inst_ram[i]
 
     opcode = instruction[7:0]
+    imm = intbv(0)[32:]
+
+    op_type = ''
 
     if opcode == RTYPE:
         alu_op = 2
+        op_type = 'RTYPE'
     elif opcode == ITYPE:
         alu_op = 0
+        op_type = 'ITYPE'
     elif opcode == STYPE:
         alu_op = 0
+        op_type = 'STYPE'
     elif opcode == JTYPE:
         alu_op = 7
+        op_type = 'JTYPE'
 
     if alu_op == 2:
         if instruction[32:25] == 0:
@@ -60,6 +67,27 @@ for i in range(12):
         rda = registers[instruction[20:15]]
         rdx = registers[instruction[25:20]]
 
+    if opcode == ITYPE:
+        rda = registers[instruction[20:15]]
+        rdx = instruction[32:20]
+
+    if opcode == STYPE:
+        imm[5:] = instruction[12:7]
+        imm[12:5] = instruction[32:25]
+
+        rda = registers[instruction[25:20]]
+        rdx = imm
+
+    if opcode == JTYPE:
+        imm[12] = instruction[31]
+        imm[11:5] = instruction[31:25]
+        imm[11] = instruction[7]
+        imm[5:1] = instruction[12:8]
+        imm[0] = 0
+
+        rda = registers[instruction[20:15]]
+        rdx = registers[instruction[25:20]]
+
     if alu_decode == AND:
         result = rda & rdx
     elif alu_decode == OR:
@@ -75,7 +103,7 @@ for i in range(12):
     elif alu_decode == SRL:
         result = rda.signed() >> rdx
     elif alu_decode == SLT:
-        resultt = True if (rda.signed() < rdx.signed()) else False
+        result = True if (rda.signed() < rdx.signed()) else False
     elif alu_decode == SLTU:
         result = True if (rda.unsigned() < rdx.unsigned()) else False
     elif alu_decode == SRA:
@@ -90,13 +118,17 @@ for i in range(12):
     if opcode == RTYPE:
         registers[instruction[12:7]] = result
 
-    '''
-    imm = intbv(0)[13:]
-    imm[12] = ins[31]
-    imm[11:5] = ins[31:25]
-    imm[11] = ins[7]
-    imm[5:1] = ins[12:8]
-    '''
+    if opcode == ITYPE:
+        registers[instruction[12:7]] = data_ram[result]
+
+    if opcode == STYPE:
+        data_ram[result] = registers[instruction[25:20]]
+
+    if opcode == JTYPE:
+        if result == 0:
+            pc = pc + int(imm)
+            i = pc
+
     aluop = ''
     if alu_decode == AND:
         aluop = ' AND'
@@ -120,23 +152,25 @@ for i in range(12):
         aluop = ' SRA'
 
     if instruction[7:0] == RTYPE:
-        print(format(i, '03'), format(int(instruction), '08x'), 'op', format(int(instruction[7:0]), '02x'),
+        print(format(i, '02x'), format(int(instruction), '08x'), 'op', op_type, format(int(instruction[7:0]), '02x'),
               'rs1', format(int(instruction[20:15]), '02x'), 'rs2', format(int(instruction[25:20]), '02x'), 'rd',
               format(int(instruction[12:7]), '02x'), '\n',
               'alu-op', aluop, 'rs1-data', format(int(rda), '08x'), 'rs2-data', format(int(rdx), '08x'), 'rd-data', format(int(result), '08x'))
 
-    #format(int(rda), '08x')
+    if instruction[7:0] == ITYPE:
+        print(format(i, '02x'), format(int(instruction), '08x'), 'op', op_type, format(int(instruction[7:0]), '02x'),
+              'base', format(int(instruction[20:15]), '02x'), 'rd', format(int(instruction[12:7]), '02x'),
+              'width', format(int(instruction[15:12]), '01x'), 'offset', format(int(instruction[32:20]), '02x'), '\n',
+              'alu-op', aluop, 'base-data', format(int(rda), '08x'), 'rd-data-offset', format(int(result), '08x'), 'rd-data', format(int(registers[instruction[12:7]]), '02x'))
 
-    '''
-    print('rd', format(int(ins[12:7]), '05b'))
-    print('func3', format(int(ins[15:12]), '03b'))
-    print('rs1', format(int(ins[20:15]), '05b'))
-    print('rs2', format(int(ins[25:20]), '05b'))
-    print('func7', format(int(ins[32:25]), '07b'))
+    if instruction[7:0] == STYPE:
+        print(format(i, '02x'), format(int(instruction), '08x'), 'op', op_type, format(int(instruction[7:0]), '02x'),
+              'base', format(int(instruction[20:15]), '02x'), 'rs2', format(int(instruction[25:20]), '02x'),
+              'width', format(int(instruction[15:12]), '01x'), 'offset', format(int(imm), '08x'), '\n',
+              'alu-op', aluop, 'base-data', format(int(rda), '08x'), 'stored-address base-data+offset', format(int(result), '08x'), '\n',
+              'rs2-data stored-data', format(int(registers[instruction[25:20]]), '08x'), 'data-ram', format(int(data_ram[result]), '08x'))
 
-    print('imm', format(int(ins[32:20]), '012b'))
-
-    print('imm', format(int(ins[32:25]), '012b'))
-
-    print('jmp', format(int(imm), '012b'))
-    '''
+    if instruction[7:0] == JTYPE:
+        print(format(i, '02x'), format(int(instruction), '08x'), 'op', op_type, format(int(instruction[7:0]), '02x'),
+              'rs1', format(int(instruction[20:15]), '02x'), 'rs2', format(int(instruction[25:20]), '02x'), 'offset',
+              format(int(imm), '08x'), '\n', 'alu-op', aluop, 'result', result, 'pc', i)

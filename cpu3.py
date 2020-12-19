@@ -188,6 +188,7 @@ def imm_gen(reset, instruction, im_gen):
                 im_gen.next[11:5] = instruction[31:25]
                 im_gen.next[11] = instruction[7]
                 im_gen.next[5:1] = instruction[12:8]
+                im_gen.next[0] = 0
 
             if instruction[31] == 0:
                 pad = signal(intbv(0)[20:])
@@ -285,6 +286,7 @@ def inst_mem(reset, read_addr, instruction, ra, rb, wa, opcode):
                 wa.next = inst_ram[read_addr][12:7]
             elif inst_ram[read_addr][7:0] == STYPE:
                 ra.next = inst_ram[read_addr][20:15]
+                rb.next = inst_ram[read_addr][25:20]
                 opcode.next = inst_ram[read_addr][7:0]
                 wa.next = inst_ram[read_addr][25:20]
             elif inst_ram[read_addr][7:0] == JTYPE:
