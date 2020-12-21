@@ -10,7 +10,7 @@ ITYPE = 3
 STYPE = 35
 BTYPE = 32
 UTYPE = 42
-JTYPE = 99
+SBTYPE = 99
 
 
 # R-format rd = rs1 op rs2

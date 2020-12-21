@@ -1,5 +1,5 @@
 $date
-    Sun Dec 20 17:30:45 2020
+    Mon Dec 21 10:28:53 2020
 $end
 $version
     MyHDL 0.11
@@ -44,7 +44,7 @@ $var reg 1 ! clk $end
 $var reg 32 < pc $end
 $var reg 1 " reset $end
 $var reg 1 = step $end
-$scope module control $end
+$scope module control0 $end
 $var reg 4 * alu_op $end
 $var reg 1 / alu_src $end
 $var reg 1 + brnch $end
@@ -385,40 +385,40 @@ $var reg 32 $B registers(30) $end
 $var reg 32 $C registers(31) $end
 $upscope $end
 $upscope $end
-$scope module pc_adder $end
+$scope module pc_adder0 $end
 $var reg 1 = step $end
 $var reg 32 < pc $end
 $var reg 32 : pc_addr $end
 $var reg 1 " reset $end
 $upscope $end
-$scope module jmp_adder $end
+$scope module jmp_adder0 $end
 $var reg 32 ; jmp_addr $end
 $var reg 32 8 read_addr $end
 $var reg 1 " reset $end
 $var reg 32 4 shl $end
 $upscope $end
-$scope module pc_mux $end
+$scope module pc_mux0 $end
 $var reg 32 ; jmp_addr $end
 $var reg 32 < pc $end
 $var reg 32 : pc_addr $end
 $var reg 1 5 pc_sel $end
 $var reg 1 " reset $end
 $upscope $end
-$scope module alu_mux $end
+$scope module alu_mux0 $end
 $var reg 1 / alu_src $end
 $var reg 32 6 im_gen $end
 $var reg 32 ( rdb $end
 $var reg 32 ) rdx $end
 $var reg 1 " reset $end
 $upscope $end
-$scope module wda_mux $end
+$scope module wda_mux0 $end
 $var reg 1 - mem_to_rgs $end
 $var reg 32 3 read_data $end
 $var reg 1 " reset $end
 $var reg 32 2 result $end
 $var reg 32 & wda $end
 $upscope $end
-$scope module alu_control $end
+$scope module alu_control0 $end
 $var reg 4 7 alu_decode $end
 $var reg 4 * alu_op $end
 $var reg 32 9 instruction $end
@@ -429,7 +429,7 @@ $var reg 32 6 im_gen $end
 $var reg 32 9 instruction $end
 $var reg 1 " reset $end
 $upscope $end
-$scope module pc_assign $end
+$scope module pc_assign0 $end
 $var reg 32 < pc $end
 $var reg 32 8 read_addr $end
 $var reg 1 " reset $end

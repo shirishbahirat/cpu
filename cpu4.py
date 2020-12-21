@@ -362,6 +362,24 @@ def cpu_top(clk, reset):
     nxpc = pc_assign(reset, read_addr, pc)
     tken = taken(result, brnch, pc_sel)
 
+    cont.convert(hdl='Verilog')
+    pcmx.convert(hdl='Verilog')
+    almx.convert(hdl='Verilog')
+    wdmx.convert(hdl='Verilog')
+    nxpc.convert(hdl='Verilog')
+    aluc.convert(hdl='Verilog')
+    padr.convert(hdl='Verilog')
+    jadr.convert(hdl='Verilog')
+    tken.convert(hdl='Verilog')
+
+    '''
+    alux.convert(hdl='Verilog')
+    imgn.convert(hdl='Verilog')
+    regf.convert(hdl='Verilog')
+    imem.convert(hdl='Verilog')
+    dmem.convert(hdl='Verilog')
+    '''
+
     @always(step.posedge)
     def cpu():
         if pc == 0:
