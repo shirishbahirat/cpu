@@ -30,9 +30,9 @@ for i in range(12):
     elif opcode == STYPE:
         alu_op = 0
         op_type = 'STYPE'
-    elif opcode == JTYPE:
+    elif opcode == SBTYPE:
         alu_op = 7
-        op_type = 'JTYPE'
+        op_type = 'SBTYPE'
 
     if alu_op == 2:
         if instruction[32:25] == 0:
@@ -78,7 +78,7 @@ for i in range(12):
         rda = registers[instruction[25:20]]
         rdx = imm
 
-    if opcode == JTYPE:
+    if opcode == SBTYPE:
         imm[12] = instruction[31]
         imm[11:5] = instruction[31:25]
         imm[11] = instruction[7]
@@ -124,7 +124,7 @@ for i in range(12):
     if opcode == STYPE:
         data_ram[result] = registers[instruction[25:20]]
 
-    if opcode == JTYPE:
+    if opcode == SBTYPE:
         if result == 0:
             pc = pc + int(imm)
             i = pc
@@ -170,7 +170,7 @@ for i in range(12):
               'alu-op', aluop, 'base-data', format(int(rda), '08x'), 'stored-address base-data+offset', format(int(result), '08x'), '\n',
               'rs2-data stored-data', format(int(registers[instruction[25:20]]), '08x'), 'data-ram', format(int(data_ram[result]), '08x'))
 
-    if instruction[7:0] == JTYPE:
+    if instruction[7:0] == SBTYPE:
         print(format(i, '02x'), format(int(instruction), '08x'), 'op', op_type, format(int(instruction[7:0]), '02x'),
               'rs1', format(int(instruction[20:15]), '02x'), 'rs2', format(int(instruction[25:20]), '02x'), 'offset',
               format(int(imm), '08x'), '\n', 'alu-op', aluop, 'result', result, 'pc', i)
