@@ -24,3 +24,6 @@ SUB = 6
 XOR = 7
 SRL = 8
 SRA = 9
+
+# constants
+XPAD = (2**20) - 1
