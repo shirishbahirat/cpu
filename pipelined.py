@@ -289,7 +289,7 @@ def cpu_top(clk, reset):
 
     '''
     to do
-    fix taken
+    fix taken seems like stalling
     complete idex pipeline reg
     '''
 
