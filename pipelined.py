@@ -224,13 +224,12 @@ def imm_gen(reset, ifid_reg, im_gen, padz, padx):
 
 
 @block
-def idex_pipl(reset, idex_reg, instruction, pc):
+def idex_pipl(reset, idex_reg, ra, rb, wa, im_gen, rda, rdb, brnch, mem_rd, mem_to_rgs, alu_op, mem_wr, alu_src, reg_wr):
 
     @always_comb
     def id_ex():
         if reset.next == INACTIVE_HIGH:
-            idex_reg.next[(CPU_BITS + CPU_BITS):CPU_BITS] = pc
-            idex_reg.next[CPU_BITS:] = instruction
+            idex_reg.next[5:0] = ra.next
 
     return id_ex
 
@@ -291,8 +290,8 @@ def cpu_top(clk, reset):
     #tken = taken(result, brnch, pc_sel)
     # tken.convert(hdl='Verilog')
 
-    idex = idex_pipl(reset, idex_reg, instruction, pc)
-    idex.convert(hdl='Verilog')
+    idex = idex_pipl(reset, idex_reg, ra, rb, wa, im_gen, rda, rdb, brnch, mem_rd, mem_to_rgs, alu_op, mem_wr, alu_src, reg_wr)
+    #idex.convert(hdl='Verilog')
 
     '''
     to do
