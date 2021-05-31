@@ -1,7 +1,7 @@
 module tb_idex_pipl;
 
 reg reset;
-wire [63:0] idex_reg;
+wire [120:0] idex_reg;
 reg [31:0] instruction;
 reg [31:0] pc;
 

@@ -243,7 +243,7 @@ def cpu_top(clk, reset):
     wda, rda, rdb, rdx = [signal(intbv(0)[CPU_BITS:]) for _ in range(4)]
     brnch, mem_rd, mem_to_rgs, mem_wr, alu_src, reg_wr = [signal(intbv(0)[1:]) for _ in range(6)]
     ifid_reg = signal(intbv(0)[(CPU_BITS + CPU_BITS):])
-    idex_reg = signal(intbv(0)[(CPU_BITS + CPU_BITS):])
+
     pc_sel = signal(intbv(0)[1:])
     opcode = signal(intbv(0)[7:])
     alu_op = signal(intbv(0)[CPU_ALUW:])
@@ -255,6 +255,8 @@ def cpu_top(clk, reset):
         len(rda) + len(rdb) + len(brnch) + len(mem_rd) + \
         len(mem_to_rgs) + len(alu_op) + len(mem_wr) + \
         len(alu_src) + len(reg_wr)
+
+    idex_reg = signal(intbv(0)[id_ex_len:])
 
     padr = pc_adder(reset, clk, pc, pc_next)
     padr.convert(hdl='Verilog')
