@@ -248,6 +248,80 @@ def idex_pipl(reset, idex_reg, ra, rb, wa, im_gen, rda, rdb, alu_op, brnch, mem_
 
 
 @block
+def alu(reset, alu_decode, rda, rdx, result):
+
+    @always_comb
+    def operation():
+        if reset.next == INACTIVE_HIGH:
+            if alu_decode == AND:
+                result.next = rda & rdx
+            elif alu_decode == OR:
+                result.next = rda | rdx
+            elif alu_decode == ADD:
+                result.next = rda + rdx
+            elif alu_decode == SUB:
+                result.next = rda - rdx
+            elif alu_decode == XOR:
+                result.next = rda ^ rdx
+            elif alu_decode == SLL:
+                result.next = rda << rdx
+            elif alu_decode == SRL:
+                result.next = rda.signed() >> rdx
+            elif alu_decode == SLT:
+                result.next = True if (rda.signed() < rdx.signed()) else False
+            elif alu_decode == SLTU:
+                result.next = True if (rda.unsigned() < rdx.unsigned()) else False
+            elif alu_decode == SRA:
+                if rda[31] == 0:
+                    result.next = rda.signed() >> rdx
+                elif rda[31] == 1:
+                    temp = (2**rdx) - 1
+                    pad = signal(intbv(temp)[rdx:])
+                    result.next = rda.signed() >> rdx
+                    result.next[32:(31 - rdx)] = pad
+
+    return operation
+
+
+@block
+def alu_control(reset, instruction, alu_op, alu_decode):
+
+    @always_comb
+    def alucont():
+        if reset.next == INACTIVE_HIGH:
+            if alu_op == 2:
+                if instruction[32:25] == 0:
+                    if instruction[15:12] == 0:
+                        alu_decode.next = ADD
+                    elif instruction[15:12] == 1:
+                        alu_decode.next = SLL
+                    elif instruction[15:12] == 2:
+                        alu_decode.next = SLT
+                    elif instruction[15:12] == 3:
+                        alu_decode.next = SLTU
+                    elif instruction[15:12] == 4:
+                        alu_decode.next = XOR
+                    elif instruction[15:12] == 5:
+                        alu_decode.next = SRL
+                    elif instruction[15:12] == 6:
+                        alu_decode.next = OR
+                    elif instruction[15:12] == 7:
+                        alu_decode.next = AND
+                elif instruction[32:25] == 32:
+                    if instruction[15:12] == 0:
+                        alu_decode.next = SUB
+                    elif instruction[15:12] == 5:
+                        alu_decode.next = SRA
+            elif alu_op == 0:
+                alu_decode.next = ADD
+            elif alu_op == 7:
+                if instruction[15:12] == 0:
+                    alu_decode.next = XOR
+
+    return alucont
+
+
+@block
 def cpu_top(clk, reset):
 
     pc, pc_next, jmp_addr, read_addr, instruction = [signal(intbv(0)[CPU_BITS:]) for _ in range(5)]
