@@ -1,3 +1,5 @@
+from math import log
+
 
 CPU_BITS = 32
 CPU_REGS = 32
@@ -27,3 +29,6 @@ SRA = 9
 
 # constants
 XPAD = (2**20) - 1
+
+# width of signals
+REG_WIDTH = int(log(CPU_BITS, 2))

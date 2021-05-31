@@ -224,12 +224,25 @@ def imm_gen(reset, ifid_reg, im_gen, padz, padx):
 
 
 @block
-def idex_pipl(reset, idex_reg, ra, rb, wa, im_gen, rda, rdb, brnch, mem_rd, mem_to_rgs, alu_op, mem_wr, alu_src, reg_wr):
+def idex_pipl(reset, idex_reg, ra, rb, wa, im_gen, rda, rdb, alu_op, brnch, mem_rd, mem_to_rgs, mem_wr, alu_src, reg_wr):
 
     @always_comb
     def id_ex():
         if reset.next == INACTIVE_HIGH:
-            idex_reg.next[5:0] = ra.next
+            idex_reg.next[REG_WIDTH:] = ra.next
+            idex_reg.next[(2 * REG_WIDTH):REG_WIDTH] = rb.next
+            idex_reg.next[(3 * REG_WIDTH): (2 * REG_WIDTH)] = wa.next
+            idex_reg.next[(3 * REG_WIDTH) + CPU_BITS:(3 * REG_WIDTH)] = im_gen.next
+            idex_reg.next[(3 * REG_WIDTH) + (2 * CPU_BITS):(3 * REG_WIDTH) + CPU_BITS] = rda.next
+            idex_reg.next[(3 * REG_WIDTH) + (3 * CPU_BITS):(3 * REG_WIDTH) + (2 * CPU_BITS)] = rdb.next
+            idex_reg.next[(3 * REG_WIDTH) + (3 * CPU_BITS) + CPU_ALUW:(3 * REG_WIDTH) + (3 * CPU_BITS)] = alu_op.next
+
+            idex_reg.next[1 + (3 * REG_WIDTH) + (3 * CPU_BITS) + CPU_ALUW:0 + (3 * REG_WIDTH) + (3 * CPU_BITS) + CPU_ALUW] = brnch.next
+            idex_reg.next[2 + (3 * REG_WIDTH) + (3 * CPU_BITS) + CPU_ALUW:1 + (3 * REG_WIDTH) + (3 * CPU_BITS) + CPU_ALUW] = mem_rd.next
+            idex_reg.next[3 + (3 * REG_WIDTH) + (3 * CPU_BITS) + CPU_ALUW:2 + (3 * REG_WIDTH) + (3 * CPU_BITS) + CPU_ALUW] = mem_to_rgs.next
+            idex_reg.next[4 + (3 * REG_WIDTH) + (3 * CPU_BITS) + CPU_ALUW:3 + (3 * REG_WIDTH) + (3 * CPU_BITS) + CPU_ALUW] = mem_wr.next
+            idex_reg.next[5 + (3 * REG_WIDTH) + (3 * CPU_BITS) + CPU_ALUW:4 + (3 * REG_WIDTH) + (3 * CPU_BITS) + CPU_ALUW] = alu_src.next
+            idex_reg.next[6 + (3 * REG_WIDTH) + (3 * CPU_BITS) + CPU_ALUW:5 + (3 * REG_WIDTH) + (3 * CPU_BITS) + CPU_ALUW] = reg_wr.next
 
     return id_ex
 
@@ -287,11 +300,11 @@ def cpu_top(clk, reset):
     imgn = imm_gen(reset, ifid_reg, im_gen, padz, padx)
     imgn.convert(hdl='Verilog')
 
-    #tken = taken(result, brnch, pc_sel)
+    # tken = taken(result, brnch, pc_sel)
     # tken.convert(hdl='Verilog')
 
-    idex = idex_pipl(reset, idex_reg, ra, rb, wa, im_gen, rda, rdb, brnch, mem_rd, mem_to_rgs, alu_op, mem_wr, alu_src, reg_wr)
-    #idex.convert(hdl='Verilog')
+    idex = idex_pipl(reset, idex_reg, ra, rb, wa, im_gen, rda, rdb, alu_op, brnch, mem_rd, mem_to_rgs, mem_wr, alu_src, reg_wr)
+    idex.convert(hdl='Verilog')
 
     '''
     to do
@@ -304,7 +317,7 @@ def cpu_top(clk, reset):
     return instances()
 
 
-@block
+@ block
 def top():
 
     clk = signal(intbv(0)[1:])
@@ -314,7 +327,7 @@ def top():
 
     cpu = cpu_top(clk, reset)
 
-    @instance
+    @ instance
     def stimulus():
         reset.next = ACTIVE_LOW
         yield clk.negedge
