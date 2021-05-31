@@ -53,6 +53,20 @@ def pc_assign(reset, read_addr, pc):
 
 
 @block
+def alu_mux(reset, im_gen, rdb, rdx, alu_src):
+
+    @always_comb
+    def amux():
+        if reset.next == INACTIVE_HIGH:
+            if alu_src:
+                rdx.next = im_gen
+            else:
+                rdx.next = rdb
+
+    return amux
+
+
+@block
 def taken(result, brnch, pc_sel):
 
     @always_comb
@@ -252,37 +266,35 @@ def idex_pipl(reset, idex_reg, instruction, ra, rb, wa, im_gen, rda, rdb, alu_op
 
 
 @block
-def alu(reset, alu_decode, rda, rdx, result):
+def alu(reset, alu_decode, idex_reg, rdx, result):
 
     @always_comb
     def operation():
         if reset.next == INACTIVE_HIGH:
             if alu_decode == AND:
-                result.next = rda & rdx
+                result.next = idex_reg[(3 * REG_WIDTH) + (3 * CPU_BITS):(3 * REG_WIDTH) + (2 * CPU_BITS)] & rdx
             elif alu_decode == OR:
-                result.next = rda | rdx
+                result.next = idex_reg[(3 * REG_WIDTH) + (3 * CPU_BITS):(3 * REG_WIDTH) + (2 * CPU_BITS)] | rdx
             elif alu_decode == ADD:
-                result.next = rda + rdx
+                result.next = idex_reg[(3 * REG_WIDTH) + (3 * CPU_BITS):(3 * REG_WIDTH) + (2 * CPU_BITS)] + rdx
             elif alu_decode == SUB:
-                result.next = rda - rdx
+                result.next = idex_reg[(3 * REG_WIDTH) + (3 * CPU_BITS):(3 * REG_WIDTH) + (2 * CPU_BITS)] - rdx
             elif alu_decode == XOR:
-                result.next = rda ^ rdx
+                result.next = idex_reg[(3 * REG_WIDTH) + (3 * CPU_BITS):(3 * REG_WIDTH) + (2 * CPU_BITS)] ^ rdx
             elif alu_decode == SLL:
-                result.next = rda << rdx
+                result.next = idex_reg[(3 * REG_WIDTH) + (3 * CPU_BITS):(3 * REG_WIDTH) + (2 * CPU_BITS)] << rdx
             elif alu_decode == SRL:
-                result.next = rda.signed() >> rdx
+                result.next = idex_reg[(3 * REG_WIDTH) + (3 * CPU_BITS):(3 * REG_WIDTH) + (2 * CPU_BITS)].signed() >> rdx
             elif alu_decode == SLT:
-                result.next = True if (rda.signed() < rdx.signed()) else False
+                result.next = True if (idex_reg[(3 * REG_WIDTH) + (3 * CPU_BITS):(3 * REG_WIDTH) + (2 * CPU_BITS)].signed() < rdx.signed()) else False
             elif alu_decode == SLTU:
-                result.next = True if (rda.unsigned() < rdx.unsigned()) else False
+                result.next = True if (idex_reg[(3 * REG_WIDTH) + (3 * CPU_BITS):(3 * REG_WIDTH) + (2 * CPU_BITS)] < rdx) else False
             elif alu_decode == SRA:
-                if rda[31] == 0:
-                    result.next = rda.signed() >> rdx
-                elif rda[31] == 1:
-                    temp = (2**rdx) - 1
-                    pad = signal(intbv(temp)[rdx:])
-                    result.next = rda.signed() >> rdx
-                    result.next[32:(31 - rdx)] = pad
+                if idex_reg[(3 * REG_WIDTH) + (3 * CPU_BITS):(3 * REG_WIDTH) + (2 * CPU_BITS)][31] == 0:
+                    result.next = idex_reg[(3 * REG_WIDTH) + (3 * CPU_BITS):(3 * REG_WIDTH) + (2 * CPU_BITS)].signed() >> rdx
+                elif idex_reg[(3 * REG_WIDTH) + (3 * CPU_BITS):(3 * REG_WIDTH) + (2 * CPU_BITS)][31] == 1:
+                    result.next = idex_reg[(3 * REG_WIDTH) + (3 * CPU_BITS):(3 * REG_WIDTH) + (2 * CPU_BITS)].signed() >> rdx
+                    result.next[32:(31 - rdx)] = (2**rdx) - 1
 
     return operation
 
@@ -388,12 +400,15 @@ def cpu_top(clk, reset):
     aluc = alu_control(reset, idex_reg, alu_decode)
     aluc.convert(hdl='Verilog')
 
+    alux = alu(reset, alu_decode, idex_reg, rdx, result)
+    alux.convert(hdl='Verilog')
+
     '''
     to do
     fix taken seems like stalling
-    complete idex pipeline reg
     include control output mux
     reg write control needs to be from forwared and not from contol out
+    alu rdx needs be from alu_mux
     '''
 
     return instances()
