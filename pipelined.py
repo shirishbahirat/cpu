@@ -251,6 +251,11 @@ def cpu_top(clk, reset):
     padz, padx = [signal(intbv(0)[20:]), signal(intbv(XPAD)[20:])]
     result, read_data, pc, shl = [signal(intbv(0)[CPU_BITS:]) for _ in range(4)]
 
+    id_ex_len = len(ra) + len(rb) + len(wa) + len(im_gen) + \
+        len(rda) + len(rdb) + len(brnch) + len(mem_rd) + \
+        len(mem_to_rgs) + len(alu_op) + len(mem_wr) + \
+        len(alu_src) + len(reg_wr)
+
     padr = pc_adder(reset, clk, pc, pc_next)
     padr.convert(hdl='Verilog')
 
@@ -291,6 +296,8 @@ def cpu_top(clk, reset):
     to do
     fix taken seems like stalling
     complete idex pipeline reg
+    include control output mux
+    reg write control needs to be from forwared and not from contol out
     '''
 
     return instances()
