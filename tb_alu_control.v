@@ -1,15 +1,13 @@
 module tb_alu_control;
 
 reg reset;
-reg [31:0] instruction;
-reg [3:0] alu_op;
+reg [152:0] idex_reg;
 wire [3:0] alu_decode;
 
 initial begin
     $from_myhdl(
         reset,
-        instruction,
-        alu_op
+        idex_reg
     );
     $to_myhdl(
         alu_decode
@@ -18,8 +16,7 @@ end
 
 alu_control dut(
     reset,
-    instruction,
-    alu_op,
+    idex_reg,
     alu_decode
 );
 

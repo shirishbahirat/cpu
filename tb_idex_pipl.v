@@ -1,7 +1,8 @@
 module tb_idex_pipl;
 
 reg reset;
-wire [120:0] idex_reg;
+wire [152:0] idex_reg;
+reg [31:0] instruction;
 reg [4:0] ra;
 reg [4:0] rb;
 reg [4:0] wa;
@@ -19,6 +20,7 @@ reg [0:0] reg_wr;
 initial begin
     $from_myhdl(
         reset,
+        instruction,
         ra,
         rb,
         wa,
@@ -41,6 +43,7 @@ end
 idex_pipl dut(
     reset,
     idex_reg,
+    instruction,
     ra,
     rb,
     wa,

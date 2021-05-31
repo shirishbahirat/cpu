@@ -224,25 +224,29 @@ def imm_gen(reset, ifid_reg, im_gen, padz, padx):
 
 
 @block
-def idex_pipl(reset, idex_reg, ra, rb, wa, im_gen, rda, rdb, alu_op, brnch, mem_rd, mem_to_rgs, mem_wr, alu_src, reg_wr):
+def idex_pipl(reset, idex_reg, instruction, ra, rb, wa, im_gen, rda, rdb, alu_op, brnch, mem_rd, mem_to_rgs, mem_wr, alu_src, reg_wr):
 
     @always_comb
     def id_ex():
         if reset.next == INACTIVE_HIGH:
-            idex_reg.next[REG_WIDTH:] = ra.next
-            idex_reg.next[(2 * REG_WIDTH):REG_WIDTH] = rb.next
-            idex_reg.next[(3 * REG_WIDTH): (2 * REG_WIDTH)] = wa.next
-            idex_reg.next[(3 * REG_WIDTH) + CPU_BITS:(3 * REG_WIDTH)] = im_gen.next
-            idex_reg.next[(3 * REG_WIDTH) + (2 * CPU_BITS):(3 * REG_WIDTH) + CPU_BITS] = rda.next
-            idex_reg.next[(3 * REG_WIDTH) + (3 * CPU_BITS):(3 * REG_WIDTH) + (2 * CPU_BITS)] = rdb.next
-            idex_reg.next[(3 * REG_WIDTH) + (3 * CPU_BITS) + CPU_ALUW:(3 * REG_WIDTH) + (3 * CPU_BITS)] = alu_op.next
+            idex_reg.next[CPU_BITS:] = instruction.next
+            idex_reg.next[CPU_BITS + REG_WIDTH:CPU_BITS] = ra.next
 
-            idex_reg.next[1 + (3 * REG_WIDTH) + (3 * CPU_BITS) + CPU_ALUW:0 + (3 * REG_WIDTH) + (3 * CPU_BITS) + CPU_ALUW] = brnch.next
-            idex_reg.next[2 + (3 * REG_WIDTH) + (3 * CPU_BITS) + CPU_ALUW:1 + (3 * REG_WIDTH) + (3 * CPU_BITS) + CPU_ALUW] = mem_rd.next
-            idex_reg.next[3 + (3 * REG_WIDTH) + (3 * CPU_BITS) + CPU_ALUW:2 + (3 * REG_WIDTH) + (3 * CPU_BITS) + CPU_ALUW] = mem_to_rgs.next
-            idex_reg.next[4 + (3 * REG_WIDTH) + (3 * CPU_BITS) + CPU_ALUW:3 + (3 * REG_WIDTH) + (3 * CPU_BITS) + CPU_ALUW] = mem_wr.next
-            idex_reg.next[5 + (3 * REG_WIDTH) + (3 * CPU_BITS) + CPU_ALUW:4 + (3 * REG_WIDTH) + (3 * CPU_BITS) + CPU_ALUW] = alu_src.next
-            idex_reg.next[6 + (3 * REG_WIDTH) + (3 * CPU_BITS) + CPU_ALUW:5 + (3 * REG_WIDTH) + (3 * CPU_BITS) + CPU_ALUW] = reg_wr.next
+            idex_reg.next[(2 * REG_WIDTH) + CPU_BITS:REG_WIDTH + CPU_BITS] = rb.next
+            idex_reg.next[(3 * REG_WIDTH) + CPU_BITS: (2 * REG_WIDTH) + CPU_BITS] = wa.next
+
+            idex_reg.next[(3 * REG_WIDTH) + (2 * CPU_BITS):(3 * REG_WIDTH) + CPU_BITS] = im_gen.next
+
+            idex_reg.next[(3 * REG_WIDTH) + (3 * CPU_BITS):(3 * REG_WIDTH) + (2 * CPU_BITS)] = rda.next
+            idex_reg.next[(3 * REG_WIDTH) + (4 * CPU_BITS):(3 * REG_WIDTH) + (3 * CPU_BITS)] = rdb.next
+            idex_reg.next[(3 * REG_WIDTH) + (4 * CPU_BITS) + CPU_ALUW:(3 * REG_WIDTH) + (4 * CPU_BITS)] = alu_op.next
+
+            idex_reg.next[1 + (3 * REG_WIDTH) + (4 * CPU_BITS) + CPU_ALUW:0 + (3 * REG_WIDTH) + (4 * CPU_BITS) + CPU_ALUW] = brnch.next
+            idex_reg.next[2 + (3 * REG_WIDTH) + (4 * CPU_BITS) + CPU_ALUW:1 + (3 * REG_WIDTH) + (4 * CPU_BITS) + CPU_ALUW] = mem_rd.next
+            idex_reg.next[3 + (3 * REG_WIDTH) + (4 * CPU_BITS) + CPU_ALUW:2 + (3 * REG_WIDTH) + (4 * CPU_BITS) + CPU_ALUW] = mem_to_rgs.next
+            idex_reg.next[4 + (3 * REG_WIDTH) + (4 * CPU_BITS) + CPU_ALUW:3 + (3 * REG_WIDTH) + (4 * CPU_BITS) + CPU_ALUW] = mem_wr.next
+            idex_reg.next[5 + (3 * REG_WIDTH) + (4 * CPU_BITS) + CPU_ALUW:4 + (3 * REG_WIDTH) + (4 * CPU_BITS) + CPU_ALUW] = alu_src.next
+            idex_reg.next[6 + (3 * REG_WIDTH) + (4 * CPU_BITS) + CPU_ALUW:5 + (3 * REG_WIDTH) + (4 * CPU_BITS) + CPU_ALUW] = reg_wr.next
 
     return id_ex
 
@@ -284,38 +288,38 @@ def alu(reset, alu_decode, rda, rdx, result):
 
 
 @block
-def alu_control(reset, instruction, alu_op, alu_decode):
+def alu_control(reset, idex_reg, alu_decode):
 
     @always_comb
     def alucont():
         if reset.next == INACTIVE_HIGH:
-            if alu_op == 2:
-                if instruction[32:25] == 0:
-                    if instruction[15:12] == 0:
+            if idex_reg[(3 * REG_WIDTH) + (4 * CPU_BITS) + CPU_ALUW:(3 * REG_WIDTH) + (4 * CPU_BITS)] == 2:
+                if idex_reg[32:25] == 0:
+                    if idex_reg[15:12] == 0:
                         alu_decode.next = ADD
-                    elif instruction[15:12] == 1:
+                    elif idex_reg[15:12] == 1:
                         alu_decode.next = SLL
-                    elif instruction[15:12] == 2:
+                    elif idex_reg[15:12] == 2:
                         alu_decode.next = SLT
-                    elif instruction[15:12] == 3:
+                    elif idex_reg[15:12] == 3:
                         alu_decode.next = SLTU
-                    elif instruction[15:12] == 4:
+                    elif idex_reg[15:12] == 4:
                         alu_decode.next = XOR
-                    elif instruction[15:12] == 5:
+                    elif idex_reg[15:12] == 5:
                         alu_decode.next = SRL
-                    elif instruction[15:12] == 6:
+                    elif idex_reg[15:12] == 6:
                         alu_decode.next = OR
-                    elif instruction[15:12] == 7:
+                    elif idex_reg[15:12] == 7:
                         alu_decode.next = AND
-                elif instruction[32:25] == 32:
-                    if instruction[15:12] == 0:
+                elif idex_reg[32:25] == 32:
+                    if idex_reg[15:12] == 0:
                         alu_decode.next = SUB
-                    elif instruction[15:12] == 5:
+                    elif idex_reg[15:12] == 5:
                         alu_decode.next = SRA
-            elif alu_op == 0:
+            elif idex_reg[(3 * REG_WIDTH) + (4 * CPU_BITS) + CPU_ALUW:(3 * REG_WIDTH) + (4 * CPU_BITS)] == 0:
                 alu_decode.next = ADD
-            elif alu_op == 7:
-                if instruction[15:12] == 0:
+            elif idex_reg[(3 * REG_WIDTH) + (4 * CPU_BITS) + CPU_ALUW:(3 * REG_WIDTH) + (4 * CPU_BITS)] == 7:
+                if idex_reg[15:12] == 0:
                     alu_decode.next = XOR
 
     return alucont
@@ -329,6 +333,7 @@ def cpu_top(clk, reset):
     wda, rda, rdb, rdx = [signal(intbv(0)[CPU_BITS:]) for _ in range(4)]
     brnch, mem_rd, mem_to_rgs, mem_wr, alu_src, reg_wr = [signal(intbv(0)[1:]) for _ in range(6)]
     ifid_reg = signal(intbv(0)[(CPU_BITS + CPU_BITS):])
+    alu_decode = signal(intbv(0)[CPU_ALUW:])
 
     pc_sel = signal(intbv(0)[1:])
     opcode = signal(intbv(0)[7:])
@@ -340,7 +345,7 @@ def cpu_top(clk, reset):
     id_ex_len = len(ra) + len(rb) + len(wa) + len(im_gen) + \
         len(rda) + len(rdb) + len(brnch) + len(mem_rd) + \
         len(mem_to_rgs) + len(alu_op) + len(mem_wr) + \
-        len(alu_src) + len(reg_wr)
+        len(alu_src) + len(reg_wr) + len(instruction)
 
     idex_reg = signal(intbv(0)[id_ex_len:])
 
@@ -377,8 +382,11 @@ def cpu_top(clk, reset):
     # tken = taken(result, brnch, pc_sel)
     # tken.convert(hdl='Verilog')
 
-    idex = idex_pipl(reset, idex_reg, ra, rb, wa, im_gen, rda, rdb, alu_op, brnch, mem_rd, mem_to_rgs, mem_wr, alu_src, reg_wr)
+    idex = idex_pipl(reset, idex_reg, instruction, ra, rb, wa, im_gen, rda, rdb, alu_op, brnch, mem_rd, mem_to_rgs, mem_wr, alu_src, reg_wr)
     idex.convert(hdl='Verilog')
+
+    aluc = alu_control(reset, idex_reg, alu_decode)
+    aluc.convert(hdl='Verilog')
 
     '''
     to do
